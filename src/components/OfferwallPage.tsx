@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type SVGProps } from 'react'
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type SVGProps } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 
 import {
@@ -6,20 +6,29 @@ import {
   categories,
   companyInfo,
   footerLinks,
+  levelBenefits,
+  levelOverview,
   navItems,
   notice,
   offers,
+  promoSlides,
   statCards,
   tips,
+  topMissionEntries,
   userSummary,
   type BentoCard,
   type Category,
+  type NoticeData,
   type Offer,
+  type PromoSlide,
   type StatCard,
   type TipCard,
 } from '../data/mockData'
 
 type IconProps = SVGProps<SVGSVGElement>
+type CategoryFilterId = Category['id'] | 'all'
+type CategoryButtonTone = Category['tone'] | 'all'
+type DashboardModalId = 'level-up' | 'top10'
 
 const sectionClass = 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'
 const numberFormatter = new Intl.NumberFormat('ko-KR')
@@ -32,6 +41,39 @@ const categoryToneClasses: Record<Category['tone'], string> = {
   orange: 'bg-orange-50 text-orange-700',
   teal: 'bg-teal-50 text-teal-700',
   amber: 'bg-amber-50 text-amber-700',
+}
+
+const categoryActiveGlowClasses: Record<CategoryButtonTone, string> = {
+  all: 'bg-slate-300/70',
+  blue: 'bg-blue-200/80',
+  slate: 'bg-slate-300/70',
+  green: 'bg-emerald-200/80',
+  purple: 'bg-violet-200/80',
+  orange: 'bg-orange-200/85',
+  teal: 'bg-teal-200/80',
+  amber: 'bg-amber-200/85',
+}
+
+const categoryActiveIconClasses: Record<CategoryButtonTone, string> = {
+  all: 'bg-slate-900 text-white shadow-[0_18px_30px_rgba(15,23,42,0.18)]',
+  blue: 'bg-blue-100 text-blue-700 shadow-[0_18px_30px_rgba(59,130,246,0.22)]',
+  slate: 'bg-slate-100 text-slate-700 shadow-[0_18px_30px_rgba(100,116,139,0.2)]',
+  green: 'bg-emerald-100 text-emerald-700 shadow-[0_18px_30px_rgba(16,185,129,0.2)]',
+  purple: 'bg-violet-100 text-violet-700 shadow-[0_18px_30px_rgba(139,92,246,0.22)]',
+  orange: 'bg-orange-100 text-orange-700 shadow-[0_18px_30px_rgba(249,115,22,0.2)]',
+  teal: 'bg-teal-100 text-teal-700 shadow-[0_18px_30px_rgba(20,184,166,0.2)]',
+  amber: 'bg-amber-100 text-amber-700 shadow-[0_18px_30px_rgba(245,158,11,0.2)]',
+}
+
+const categoryLabelCapsuleClasses: Record<CategoryButtonTone, string> = {
+  all: 'text-slate-900',
+  blue: 'text-blue-700',
+  slate: 'text-slate-700',
+  green: 'text-emerald-700',
+  purple: 'text-violet-700',
+  orange: 'text-orange-700',
+  teal: 'text-teal-700',
+  amber: 'text-amber-700',
 }
 
 const categoryBadgeClasses: Record<NonNullable<Category['badgeTone']>, string> = {
@@ -78,12 +120,21 @@ const statIconToneClasses: Record<StatCard['iconTone'], string> = {
   blue: 'bg-blue-100 text-blue-700',
 }
 
+const promoVisualClasses: Record<PromoSlide['accent'], string> = {
+  blue: 'from-blue-100 to-blue-50 text-blue-500',
+  violet: 'from-violet-100 to-fuchsia-50 text-violet-500',
+  emerald: 'from-emerald-100 to-teal-50 text-emerald-500',
+}
+
 export function OfferwallPage() {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilterId>('all')
+  const [noticeOpen, setNoticeOpen] = useState(false)
+  const [activeDashboardModal, setActiveDashboardModal] = useState<DashboardModalId | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
 
   useEffect(() => {
-    if (!selectedOffer) {
+    if (!selectedOffer && !noticeOpen && !activeDashboardModal) {
       document.body.style.overflow = ''
       return
     }
@@ -91,6 +142,8 @@ export function OfferwallPage() {
     const handleEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         setSelectedOffer(null)
+        setNoticeOpen(false)
+        setActiveDashboardModal(null)
       }
     }
 
@@ -101,7 +154,7 @@ export function OfferwallPage() {
       document.body.style.overflow = ''
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [selectedOffer])
+  }, [activeDashboardModal, noticeOpen, selectedOffer])
 
   useEffect(() => {
     if (!toastVisible) {
@@ -112,31 +165,71 @@ export function OfferwallPage() {
     return () => window.clearTimeout(timeoutId)
   }, [toastVisible])
 
-  const featuredOffers = offers.slice(0, 3)
-  const listOffers = offers.slice(0, 3)
-  const tipPreview = tips.slice(0, 3)
+  const filteredOffers = selectedCategory === 'all'
+    ? offers
+    : offers.filter((offer) => offer.categoryId === selectedCategory)
+  const featuredOffers = selectedCategory === 'all' ? filteredOffers : filteredOffers.slice(0, 3)
+  const listOffers = filteredOffers.slice(0, 3)
+  const tipPreview = tips.slice(0, 6)
+  const selectedCategoryLabel = selectedCategory === 'all'
+    ? '전체'
+    : categories.find((category) => category.id === selectedCategory)?.label ?? '선택한'
 
-  const handleOfferOpen = (offer: Offer) => setSelectedOffer(offer)
+  const handleOfferOpen = (offer: Offer) => {
+    setActiveDashboardModal(null)
+    setNoticeOpen(false)
+    setSelectedOffer(offer)
+  }
   const handleOfferJoin = () => {
     setSelectedOffer(null)
     setToastVisible(true)
+  }
+  const handleNoticeOpen = () => {
+    setSelectedOffer(null)
+    setActiveDashboardModal(null)
+    setNoticeOpen(true)
+  }
+  const handleDashboardOpen = (modalId: DashboardModalId) => {
+    setSelectedOffer(null)
+    setNoticeOpen(false)
+    setActiveDashboardModal(modalId)
   }
 
   return (
     <>
       <HeroSection />
-      <StatsSection />
-      <CategorySection actionTo="/missions" />
-      <FeaturedOffersSection offers={featuredOffers} onOfferOpen={handleOfferOpen} actionTo="/missions" />
-      <TipsSection items={tipPreview} />
-      <OfferListSection offers={listOffers} onOfferOpen={handleOfferOpen} actionTo="/missions" />
-      <NoticeBar />
+      <StatsSection onOpenDashboard={handleDashboardOpen} />
+      <CategorySection
+        includeAllOption
+        showAllOnMobile
+        mobileScrollable
+        mobileCategoryStyle="prominent"
+        selectedCategoryId={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        title="카테고리 바로가기"
+        subtitle="관심 있는 미션을 빠르게 탐색하세요"
+      />
+      {filteredOffers.length > 0 ? (
+        <>
+          <FeaturedOffersSection offers={featuredOffers} onOfferOpen={handleOfferOpen} actionTo="/missions" />
+          <OfferListSection offers={listOffers} onOfferOpen={handleOfferOpen} actionTo="/missions" />
+          <TipsSection items={tipPreview} />
+        </>
+      ) : (
+        <>
+          <EmptyOfferState categoryLabel={selectedCategoryLabel} />
+          <TipsSection items={tipPreview} />
+        </>
+      )}
+      <NoticeBar onOpen={handleNoticeOpen} />
 
       <OfferDetailModal
         offer={selectedOffer}
         onClose={() => setSelectedOffer(null)}
         onJoin={handleOfferJoin}
       />
+      <NoticeDetailModal noticeData={noticeOpen ? notice : null} onClose={() => setNoticeOpen(false)} />
+      <DashboardSummaryModal modalId={activeDashboardModal} onClose={() => setActiveDashboardModal(null)} />
 
       <Toast visible={toastVisible} message="미션에 참여했어요. 포인트를 확인하세요." />
     </>
@@ -144,98 +237,189 @@ export function OfferwallPage() {
 }
 
 export function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      document.body.style.overflow = ''
+      return
+    }
+
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false)
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [mobileMenuOpen])
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
-      <div className={`${sectionClass} flex h-16 items-center justify-between gap-4`}>
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-[0_12px_24px_rgba(37,99,235,0.24)]">
-            A
-          </div>
-          <span className="text-xl font-black tracking-[-0.04em] text-slate-900">
-            Ad<span className="text-blue-600">Wall</span>
-          </span>
-        </Link>
+    <>
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+        <div className={`${sectionClass} flex h-16 items-center justify-between gap-4`}>
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-[0_12px_24px_rgba(37,99,235,0.24)]">
+              A
+            </div>
+            <span className="text-xl font-black tracking-[-0.04em] text-slate-900">
+              Ad<span className="text-blue-600">Wall</span>
+            </span>
+          </Link>
 
-        <div className="flex items-center gap-3 sm:gap-4">
-          <nav className="hidden items-center gap-4 text-sm font-medium text-slate-500 md:flex">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.id}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  `transition hover:text-slate-900 ${isActive ? 'text-slate-900' : ''}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            <nav className="hidden items-center gap-4 text-sm font-medium text-slate-500 md:flex">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.id}
+                  to={item.to}
+                  end={item.to === '/'}
+                  className={({ isActive }) =>
+                    `transition hover:text-slate-900 ${isActive ? 'text-slate-900' : ''}`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-700">
               <CoinIcon className="size-3.5" />
               <span>{numberFormatter.format(userSummary.currentPoints)}P</span>
             </div>
             <button
               type="button"
-              className="flex size-9 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-violet-500 text-sm font-bold text-white shadow-[0_8px_20px_rgba(99,102,241,0.24)]"
+              className="hidden size-9 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-violet-500 text-sm font-bold text-white shadow-[0_8px_20px_rgba(99,102,241,0.24)] sm:flex"
               aria-label="사용자 프로필"
             >
               김
             </button>
+            <button
+              type="button"
+              className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition hover:bg-slate-50 md:hidden"
+              aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+              {mobileMenuOpen ? <CloseIcon className="size-5" /> : <MenuIcon className="size-5" />}
+            </button>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {mobileMenuOpen ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-slate-950/12 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="메뉴 닫기"
+          />
+          <div className="fixed inset-x-0 top-16 z-40 border-b border-slate-200/80 bg-white/96 md:hidden">
+            <div className={`${sectionClass} py-2`}>
+              <nav className="divide-y divide-slate-100">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.id}
+                    to={item.to}
+                    end={item.to === '/'}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between py-3 text-sm font-semibold transition ${isActive ? 'text-blue-700' : 'text-slate-700'}`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <span className="flex items-center gap-2.5">
+                          <span className={`h-2 w-2 rounded-full transition ${isActive ? 'bg-blue-600' : 'bg-slate-200'}`} />
+                          {item.label}
+                        </span>
+                        <ChevronRightIcon className={`size-4 transition ${isActive ? 'text-blue-500' : 'text-slate-300'}`} />
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </>
   )
 }
 
 export function HeroSection() {
+  const [activePromoIndex, setActivePromoIndex] = useState(0)
+  const activePromo = promoSlides[activePromoIndex]
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setActivePromoIndex((current) => (current + 1) % promoSlides.length)
+    }, 4500)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [])
+
   return (
-    <section id="hero" className={`${sectionClass} pt-10 sm:pt-12`}>
+    <section id="hero" className={`${sectionClass} pt-6 sm:pt-12`}>
       <div className="grid gap-4 lg:grid-cols-[1fr_1.45fr_0.95fr]">
-        <div className="group relative overflow-hidden rounded-[2rem] bg-slate-50 p-8 shadow-[0_16px_48px_rgba(15,23,42,0.04)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+        <div className="group relative hidden overflow-hidden rounded-[2rem] bg-slate-50 p-8 shadow-[0_16px_48px_rgba(15,23,42,0.04)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)] lg:block">
           <Pill>HOT 프로모션</Pill>
-          <h1 className="mt-1 text-[1.6rem] leading-[1.25] font-black tracking-[-0.05em] text-slate-900">
-            지금 참여하면
-            <br />
-            2배 포인트!
-          </h1>
-          <p className="mt-3 text-sm text-slate-500">오늘 자정까지 한정 이벤트</p>
-          <div className="mt-6 flex items-center gap-1.5">
-            <Dot active />
-            <Dot />
-            <Dot />
+          <div key={activePromo.id}>
+            <h1 className="mt-1 text-[1.6rem] leading-[1.25] font-black tracking-[-0.05em] text-slate-900">
+              {activePromo.titleLines[0]}
+              <br />
+              {activePromo.titleLines[1]}
+            </h1>
+            <p className="mt-3 text-sm text-slate-500">{activePromo.meta}</p>
           </div>
-          <div className="absolute right-0 bottom-0 flex h-32 w-32 items-center justify-center rounded-tl-[3rem] bg-linear-to-br from-blue-100 to-blue-50 text-blue-500 transition duration-300 group-hover:scale-105">
-            <ShieldCheckIcon className="size-11" />
+          <div className="mt-6 flex items-center gap-1.5">
+            {promoSlides.map((slide, index) => (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setActivePromoIndex(index)}
+                className="flex"
+                aria-label={`${index + 1}번째 프로모션 보기`}
+                aria-pressed={index === activePromoIndex}
+              >
+                <Dot active={index === activePromoIndex} />
+              </button>
+            ))}
+          </div>
+          <div
+            className={`absolute right-0 bottom-0 flex h-32 w-32 items-center justify-center rounded-tl-[3rem] bg-linear-to-br transition duration-300 group-hover:scale-105 ${promoVisualClasses[activePromo.accent]}`}
+          >
+            {renderPromoVisual(activePromo.visual)}
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-[2rem] bg-blue-600 p-8 text-white shadow-[0_24px_64px_rgba(37,99,235,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_32px_72px_rgba(37,99,235,0.34)] sm:p-10">
+        <div className="group order-1 relative overflow-hidden rounded-[2rem] bg-blue-600 p-6 text-white shadow-[0_24px_64px_rgba(37,99,235,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_32px_72px_rgba(37,99,235,0.34)] sm:p-10 lg:order-none">
           <div className="max-w-[21rem] sm:max-w-[24rem] lg:pr-32">
             <Pill inverse>이번 달 적립</Pill>
-            <h2 className="mt-3 text-[1.9rem] leading-none font-black tracking-[-0.05em] sm:text-[2.2rem]">
+            <h2 className="mt-3 text-[1.75rem] leading-none font-black tracking-[-0.05em] sm:text-[2.2rem]">
               내 포인트 현황
             </h2>
             <div className="mt-5 flex items-end gap-2">
-              <span className="text-5xl leading-none font-black tracking-[-0.08em] sm:text-[4.25rem]">
+              <span className="text-[3.4rem] leading-none font-black tracking-[-0.08em] sm:text-[4.25rem]">
                 {numberFormatter.format(userSummary.monthlyPoints)}
               </span>
-              <span className="pb-2 text-lg font-semibold text-blue-100">P ›</span>
+              <span className="pb-1.5 text-lg font-semibold text-blue-100 sm:pb-2">P</span>
             </div>
+            <p className="mt-5 text-sm font-medium text-blue-100/92 sm:mt-6">
+              *교환 가능 포인트 {numberFormatter.format(userSummary.currentPoints)}P
+            </p>
           </div>
 
-          <div className="mt-8 flex flex-col gap-4 border-t border-white/20 pt-5 text-sm font-semibold text-blue-100 sm:flex-row sm:items-center sm:gap-5">
-            <AnchorAction to="/missions">미션 참여</AnchorAction>
-            <Divider />
-            <AnchorAction to="/reward-shop">포인트 교환</AnchorAction>
-            <Divider />
-            <AnchorAction to="/history">내 현황</AnchorAction>
-          </div>
-
-          <div className="pointer-events-none absolute right-5 bottom-6 hidden h-40 w-40 translate-y-1 sm:block">
+          <div className="pointer-events-none absolute top-1/2 right-5 hidden h-40 w-40 -translate-y-1/2 sm:block">
             <div className="absolute inset-0 rounded-full bg-blue-400/45 blur-3xl" />
             <div className="absolute inset-4 rotate-12 rounded-[1.7rem] bg-linear-to-br from-white to-blue-100 shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition duration-500 group-hover:rotate-0">
               <div className="absolute -top-3 right-3 rounded-full bg-white px-3 py-1 text-[0.65rem] font-bold whitespace-nowrap text-blue-600 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
@@ -248,42 +432,61 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-[2rem] bg-slate-50 p-8 shadow-[0_16px_48px_rgba(15,23,42,0.04)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
-          <h2 className="text-[1.5rem] leading-none font-black tracking-[-0.05em] text-slate-900">
-            완료 미션
-          </h2>
-          <div className="mt-4 flex items-center gap-2 text-5xl leading-none font-black tracking-[-0.08em] text-slate-900">
-            <span>{numberFormatter.format(userSummary.completedMissions)}</span>
-            <ChevronRightIcon className="mt-2 size-5 text-slate-400" />
-          </div>
-          <p className="mt-16 text-sm text-slate-500">이번 달 완료된 미션 수</p>
+        <Link
+          to="/history"
+          aria-label="완료 미션 히스토리 보기"
+          className="group order-2 relative overflow-hidden rounded-[2rem] bg-slate-50 p-5 shadow-[0_16px_48px_rgba(15,23,42,0.04)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)] sm:p-8 lg:order-none"
+        >
+          <div className="flex items-center justify-between gap-4 sm:hidden">
+            <div className="min-w-0">
+              <h2 className="text-[1.35rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+                완료 미션
+              </h2>
+              <div className="mt-2.5 flex items-center gap-2 text-[2.8rem] leading-none font-black tracking-[-0.08em] text-slate-900">
+                <span>{numberFormatter.format(userSummary.completedMissions)}</span>
+                <ChevronRightIcon className="mt-1.5 size-[1.125rem] text-slate-400" />
+              </div>
+              <p className="mt-2 text-[13px] text-slate-500">이번 달 누적 참여 성과</p>
+            </div>
 
-          <div className="absolute right-6 top-1/2 flex size-20 -translate-y-1/2 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-blue-600 text-3xl text-white shadow-[0_16px_32px_rgba(37,99,235,0.28)] transition duration-300 group-hover:scale-105">
-            ✓
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-blue-600 text-[1.9rem] text-white shadow-[0_16px_32px_rgba(37,99,235,0.28)] transition duration-300 group-hover:scale-105">
+              ✓
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="mt-5 flex justify-center gap-2">
-        <Dot active />
-        <Dot />
-        <Dot />
+          <div className="hidden h-full flex-col sm:flex">
+            <h2 className="text-[1.5rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+              완료 미션
+            </h2>
+            <div className="mt-4 flex items-center gap-2 text-[3.4rem] leading-none font-black tracking-[-0.08em] text-slate-900 sm:text-5xl">
+              <span>{numberFormatter.format(userSummary.completedMissions)}</span>
+              <ChevronRightIcon className="mt-2 size-5 text-slate-400" />
+            </div>
+            <div className="mt-auto flex items-end justify-between gap-4 pt-10 sm:pt-16">
+              <p className="text-sm text-slate-500">이번 달 누적 참여 성과</p>
+
+              <div className="flex size-[4.5rem] shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-blue-600 text-3xl text-white shadow-[0_16px_32px_rgba(37,99,235,0.28)] transition duration-300 group-hover:scale-105 sm:size-20">
+                ✓
+              </div>
+            </div>
+          </div>
+        </Link>
       </div>
     </section>
   )
 }
 
-export function StatsSection() {
+export function StatsSection({ onOpenDashboard }: { onOpenDashboard: (modalId: DashboardModalId) => void }) {
   return (
-    <section className={`${sectionClass} py-6`}>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <section className={`${sectionClass} py-4 sm:py-6`}>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {statCards.map((card) => (
           <StatSummaryCard key={card.id} card={card} />
         ))}
 
-        <div className="space-y-3 xl:col-span-2">
+        <div className="col-span-2 flex flex-col gap-3">
           {bentoCards.map((card) => (
-            <BentoSummaryCard key={card.id} card={card} />
+            <BentoSummaryCard key={card.id} card={card} onOpen={onOpenDashboard} />
           ))}
         </div>
       </div>
@@ -291,34 +494,100 @@ export function StatsSection() {
   )
 }
 
-export function CategorySection({ actionTo = '/missions' }: { actionTo?: string }) {
+export function CategorySection({
+  includeAllOption = false,
+  showAllOnMobile = false,
+  mobileScrollable = false,
+  mobileCategoryStyle = 'default',
+  selectedCategoryId,
+  onSelectCategory,
+  title = '이런 미션은 어떠세요?',
+  subtitle,
+}: {
+  includeAllOption?: boolean
+  showAllOnMobile?: boolean
+  mobileScrollable?: boolean
+  mobileCategoryStyle?: 'default' | 'prominent'
+  selectedCategoryId?: CategoryFilterId
+  onSelectCategory?: (categoryId: CategoryFilterId) => void
+  title?: string
+  subtitle?: string
+}) {
+  const gridClasses = includeAllOption ? 'grid-cols-4 sm:grid-cols-5 lg:grid-cols-9' : 'grid-cols-4 sm:grid-cols-4 lg:grid-cols-8'
+  const allButton = includeAllOption ? (
+    <CategoryShortcutButton
+      label="전체"
+      isActive={selectedCategoryId === 'all'}
+      onClick={() => onSelectCategory?.('all')}
+      icon={<GridIcon className={mobileCategoryStyle === 'prominent' ? 'size-[2rem] sm:size-7' : 'size-6 sm:size-7'} />}
+      baseTone="bg-slate-100 text-slate-700"
+      tone="all"
+      mobileSize={mobileCategoryStyle}
+    />
+  ) : null
   return (
     <section className={`${sectionClass} py-8 sm:py-10`}>
-      <SectionHeader title="이런 미션은 어떠세요?" actionLabel="전체보기" actionTo={actionTo} />
+      <SectionHeader title={title} subtitle={subtitle} />
 
-      <div className="grid grid-cols-4 gap-x-4 gap-y-5 sm:grid-cols-4 lg:grid-cols-8">
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            className="group flex flex-col items-center gap-2.5 rounded-2xl px-1 py-2 text-center"
-          >
-            <span
-              className={`relative flex size-16 items-center justify-center rounded-full shadow-[0_8px_16px_rgba(15,23,42,0.04)] transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_14px_24px_rgba(15,23,42,0.1)] ${categoryToneClasses[category.tone]}`}
-            >
-              {renderCategoryIcon(category.iconKey, 'size-7')}
-              {category.badge && category.badgeTone ? (
-                <span
-                  className={`absolute -top-1 -right-1 rounded-full px-1.5 py-0.5 text-[0.55rem] font-black tracking-wide ${categoryBadgeClasses[category.badgeTone]}`}
-                >
-                  {category.badge}
-                </span>
-              ) : null}
-            </span>
-            <span className="text-xs font-semibold text-slate-700">{category.label}</span>
-          </button>
-        ))}
-      </div>
+      {mobileScrollable ? (
+        <>
+          <div className="-mx-1 sm:hidden">
+            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pt-2 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {showAllOnMobile && allButton ? <div className={`${mobileCategoryStyle === 'prominent' ? 'w-[5.2rem]' : 'w-20'} shrink-0 snap-start`}>{allButton}</div> : null}
+            {categories.map((category) => (
+              <div key={category.id} className={`${mobileCategoryStyle === 'prominent' ? 'w-[5.2rem]' : 'w-20'} shrink-0 snap-start`}>
+                  <CategoryShortcutButton
+                    label={category.label}
+                    isActive={selectedCategoryId === category.id}
+                    onClick={() => onSelectCategory?.(category.id)}
+                    icon={renderCategoryIcon(category.iconKey, mobileCategoryStyle === 'prominent' ? 'size-[2rem] sm:size-7' : 'size-6 sm:size-7')}
+                    badge={category.badge}
+                    badgeClassName={category.badgeTone ? categoryBadgeClasses[category.badgeTone] : undefined}
+                    baseTone={categoryToneClasses[category.tone]}
+                    tone={category.tone}
+                    mobileSize={mobileCategoryStyle}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className={`hidden sm:grid gap-x-4 gap-y-5 ${gridClasses}`}>
+            {includeAllOption ? <div className={`${showAllOnMobile ? '' : 'hidden sm:block'} h-full`}>{allButton}</div> : null}
+            {categories.map((category) => (
+              <CategoryShortcutButton
+                key={category.id}
+                label={category.label}
+                isActive={selectedCategoryId === category.id}
+                onClick={() => onSelectCategory?.(category.id)}
+                icon={renderCategoryIcon(category.iconKey, 'size-6 sm:size-7')}
+                badge={category.badge}
+                badgeClassName={category.badgeTone ? categoryBadgeClasses[category.badgeTone] : undefined}
+                baseTone={categoryToneClasses[category.tone]}
+                tone={category.tone}
+                mobileSize={mobileCategoryStyle}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className={`grid gap-x-4 gap-y-5 ${gridClasses}`}>
+          {includeAllOption ? <div className={`${showAllOnMobile ? '' : 'hidden sm:block'} h-full`}>{allButton}</div> : null}
+          {categories.map((category) => (
+            <CategoryShortcutButton
+              key={category.id}
+              label={category.label}
+              isActive={selectedCategoryId === category.id}
+              onClick={() => onSelectCategory?.(category.id)}
+              icon={renderCategoryIcon(category.iconKey, 'size-6 sm:size-7')}
+              badge={category.badge}
+              badgeClassName={category.badgeTone ? categoryBadgeClasses[category.badgeTone] : undefined}
+              baseTone={categoryToneClasses[category.tone]}
+              tone={category.tone}
+              mobileSize={mobileCategoryStyle}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }
@@ -418,23 +687,36 @@ export function OfferListSection({
   )
 }
 
-export function NoticeBar() {
+export function NoticeBar({ onOpen }: { onOpen?: () => void }) {
+  const wrapperClassName =
+    'flex w-full items-start justify-between gap-3 border-y border-slate-200/90 bg-white px-4 py-3 text-left transition hover:bg-slate-50 sm:items-center sm:gap-4 sm:rounded-2xl sm:border sm:border-slate-200/80 sm:bg-white/80 sm:px-5 sm:py-4 sm:shadow-[0_12px_20px_rgba(15,23,42,0.03)] sm:hover:bg-white'
+  const content = (
+    <>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+          <InfoIcon className="mt-0.5 size-4 shrink-0 text-slate-700 sm:mt-0" />
+          <span className="truncate">{notice.title}</span>
+          <ChevronRightIcon className="size-3.5 shrink-0 text-slate-400" />
+        </div>
+        <p className="mt-1 truncate text-[13px] text-slate-600 sm:mt-0 sm:inline sm:pl-7 sm:text-sm">
+          {notice.description}
+        </p>
+      </div>
+      <span className="shrink-0 pt-0.5 text-[11px] font-medium text-slate-400 sm:pt-0 sm:text-xs">
+        {notice.date}
+      </span>
+    </>
+  )
+
   return (
     <section className={`${sectionClass} pb-12`}>
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-4 rounded-2xl border-y border-slate-200 bg-white/70 px-5 py-4 text-left shadow-[0_12px_20px_rgba(15,23,42,0.03)] transition hover:bg-white"
-      >
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
-            <InfoIcon className="size-4 text-slate-700" />
-            <span>{notice.title}</span>
-            <ChevronRightIcon className="size-3.5 text-slate-500" />
-          </div>
-          <span className="truncate text-sm text-slate-600">{notice.description}</span>
-        </div>
-        <span className="shrink-0 text-xs text-slate-400">{notice.date}</span>
-      </button>
+      {onOpen ? (
+        <button type="button" onClick={onOpen} className={wrapperClassName}>
+          {content}
+        </button>
+      ) : (
+        <div className={wrapperClassName}>{content}</div>
+      )}
     </section>
   )
 }
@@ -498,8 +780,8 @@ function SectionHeader({
   return (
     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h2 className="text-[1.65rem] leading-none font-black tracking-[-0.05em] text-slate-900">{title}</h2>
-        {subtitle ? <p className="mt-2 text-sm text-slate-400">{subtitle}</p> : null}
+        <h2 className="text-[1.45rem] leading-none font-black tracking-[-0.05em] text-slate-900 sm:text-[1.65rem]">{title}</h2>
+        {subtitle ? <p className="mt-2 text-[13px] text-slate-400 sm:text-sm">{subtitle}</p> : null}
       </div>
       {actionTo && actionLabel ? (
         <Link to={actionTo} className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 transition hover:text-blue-700">
@@ -513,58 +795,79 @@ function SectionHeader({
 
 function StatSummaryCard({ card }: { card: StatCard }) {
   return (
-    <article className="overflow-hidden rounded-[1.6rem] bg-slate-50 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)]">
-      <div className="flex min-h-[9.75rem] flex-col justify-between">
+    <Link
+      to={card.to}
+      className="block overflow-hidden rounded-[20px] bg-slate-50 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(15,23,42,0.08)] focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+    >
+      <div className="flex min-h-[9.5rem] flex-col justify-between">
         <div>
-          <div className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-[0.6rem] font-black tracking-wide text-white">
+          <div className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-[11px] font-bold text-white">
             {card.pill}
           </div>
-          <div className="mt-4 text-sm font-medium text-slate-500">{card.label}</div>
-          <div className="mt-1.5 flex items-center gap-1.5 text-[1.7rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+          <div className="mt-3.5 text-sm font-medium text-slate-500">{card.label}</div>
+          <div className="mt-1.5 flex items-center gap-1.5 text-[2.2rem] leading-none font-extrabold tracking-[-0.045em] text-slate-900">
             <span>{card.value}</span>
-            <ChevronRightIcon className="mt-1 size-4 text-slate-400" />
+            <ChevronRightIcon className="size-[1.1rem] text-slate-400" />
           </div>
-          <div className={`mt-2 text-xs font-semibold ${card.helperTone === 'up' ? 'text-emerald-600' : 'text-slate-400'}`}>
+          <div className={`mt-2 text-[13px] font-semibold ${card.helperTone === 'up' ? 'text-emerald-600' : 'text-slate-400'}`}>
             {card.helper}
           </div>
         </div>
 
         <div className="flex justify-end">
-          <div className={`flex size-12 items-center justify-center rounded-2xl ${statIconToneClasses[card.iconTone]}`}>
-            {card.icon === 'grid' ? <GridIcon className="size-5" /> : <WalletIcon className="size-5" />}
+          <div className={`flex size-14 items-center justify-center rounded-[18px] ${statIconToneClasses[card.iconTone]}`}>
+            {card.icon === 'grid' ? <GridIcon className="size-6" /> : <WalletIcon className="size-6" />}
           </div>
         </div>
       </div>
-    </article>
+    </Link>
   )
 }
 
-function BentoSummaryCard({ card }: { card: BentoCard }) {
+function BentoSummaryCard({
+  card,
+  onOpen,
+}: {
+  card: BentoCard
+  onOpen: (modalId: DashboardModalId) => void
+}) {
   return (
-    <article
-      className={`flex items-center justify-between gap-4 rounded-[1.6rem] px-6 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(15,23,42,0.08)] ${card.variant === 'light' ? 'border border-slate-200/80 bg-white' : 'bg-slate-50'}`}
+    <button
+      type="button"
+      onClick={() => onOpen(card.id as DashboardModalId)}
+      className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-6 py-5 text-left shadow-[0_12px_32px_rgba(15,23,42,0.04)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(15,23,42,0.08)] ${card.variant === 'light' ? 'border border-slate-200/80 bg-white' : 'bg-slate-50'}`}
+      aria-haspopup="dialog"
     >
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-slate-500">{card.subtitle}</p>
-        <h3 className="mt-1 text-xl font-black tracking-[-0.04em] text-slate-900">{card.title}</h3>
-        {card.cta ? (
-          <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-slate-900">
-            <span>{card.cta}</span>
-            <ChevronRightIcon className="size-4" />
-          </p>
-        ) : null}
         {card.id === 'level-up' ? (
-          <div className="mt-3 flex items-center gap-1.5">
-            <Dot active />
-            <Dot />
-            <Dot />
-          </div>
-        ) : null}
+          <>
+            <h3 className="mt-1 text-lg leading-tight font-extrabold tracking-tight text-slate-900">
+              {card.title}
+            </h3>
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-semibold text-slate-900">
+              <span>{card.summaryLine}</span>
+              <ChevronRightIcon className="size-4" />
+            </p>
+            <div className="mt-3 w-44 max-w-full">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-blue-600" style={{ width: `${card.progressPercent ?? 0}%` }} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="mt-1 text-lg leading-tight font-extrabold tracking-tight text-slate-900">{card.title}</h3>
+            <p className="mt-1.5 truncate pr-2 text-[13px] text-slate-500">
+              {card.summaryLine}
+            </p>
+          </>
+        )}
       </div>
 
       {card.visual === 'bell' ? (
-        <div className="relative">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-[0_12px_24px_rgba(15,23,42,0.06)]">
+        <div className="relative ml-4 shrink-0">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition-transform duration-200 hover:rotate-12">
             <MessageIcon className="size-7" />
           </div>
           {card.badge ? (
@@ -584,7 +887,7 @@ function BentoSummaryCard({ card }: { card: BentoCard }) {
           </div>
         </div>
       )}
-    </article>
+    </button>
   )
 }
 
@@ -656,16 +959,16 @@ function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: (offer: Offer) => 
 
 function TipInsightCard({ card }: { card: TipCard }) {
   return (
-    <article
-      className={`relative overflow-hidden rounded-[1.8rem] p-7 shadow-[0_16px_40px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_48px_rgba(15,23,42,0.1)] ${tipCardClasses[card.variant]}`}
-    >
+    <article className={`relative overflow-hidden rounded-[1.8rem] p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-7 ${tipCardClasses[card.variant]}`}>
       <div className={`text-sm font-medium ${card.variant === 'blue' ? 'text-blue-100' : 'text-slate-500'}`}>
         {card.label}
       </div>
       <h3 className="mt-2 text-xl leading-[1.35] font-black tracking-[-0.04em] whitespace-pre-line">
         {card.title}
       </h3>
-
+      <div className={`mt-4 text-sm font-semibold ${card.variant === 'blue' ? 'text-white/80' : 'text-slate-500'}`}>
+        홈에서 바로 확인하는 미션 인사이트
+      </div>
       <div className="mt-8 flex justify-end">{renderTipIllustration(card)}</div>
     </article>
   )
@@ -762,6 +1065,240 @@ export function OfferDetailModal({
   )
 }
 
+export function NoticeDetailModal({
+  noticeData,
+  onClose,
+}: {
+  noticeData: NoticeData | null
+  onClose: () => void
+}) {
+  if (!noticeData) {
+    return null
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-8 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notice-modal-title"
+        className="w-full max-w-2xl overflow-hidden rounded-[1.8rem] bg-white shadow-[0_32px_80px_rgba(15,23,42,0.24)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="border-b border-slate-100 px-6 py-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-[0.65rem] font-black tracking-wide text-blue-700">
+                Notice
+              </div>
+              <h2 id="notice-modal-title" className="mt-4 text-[1.5rem] leading-tight font-black tracking-[-0.05em] text-slate-900">
+                {noticeData.description}
+              </h2>
+              <p className="mt-2 text-sm text-slate-400">{noticeData.date}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              aria-label="공지 닫기"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 px-6 py-6">
+          {noticeData.body.map((paragraph) => (
+            <p key={paragraph} className="text-sm leading-7 text-slate-600">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        <div className="border-t border-slate-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function DashboardSummaryModal({
+  modalId,
+  onClose,
+}: {
+  modalId: DashboardModalId | null
+  onClose: () => void
+}) {
+  if (!modalId) {
+    return null
+  }
+
+  const isLevelModal = modalId === 'level-up'
+  const topEntries = topMissionEntries.slice(0, 3)
+  const totalParticipants = topMissionEntries.reduce((sum, entry) => sum + entry.participants, 0)
+  const highestReward = Math.max(...topMissionEntries.map((entry) => entry.rewardPoints))
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 px-0 py-0 backdrop-blur-sm sm:items-center sm:px-4 sm:py-8"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dashboard-summary-title"
+        className="flex max-h-[86vh] w-full flex-col overflow-hidden rounded-t-[1.8rem] bg-white shadow-[0_32px_80px_rgba(15,23,42,0.24)] sm:max-h-none sm:max-w-xl sm:rounded-[1.8rem]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className={`px-6 py-5 sm:py-6 ${isLevelModal ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white'}`}>
+          <div className="mb-4 flex justify-center sm:hidden">
+            <span className="h-1.5 w-12 rounded-full bg-white/40" />
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className={`inline-flex rounded-full px-3 py-1 text-[0.65rem] font-black tracking-wide ${isLevelModal ? 'bg-white/12 text-blue-100' : 'bg-white/10 text-slate-200'}`}>
+                {isLevelModal ? 'Level Summary' : 'Top 10 Summary'}
+              </div>
+              <h2 id="dashboard-summary-title" className="mt-3 text-[1.7rem] leading-tight font-black tracking-[-0.05em]">
+                {isLevelModal ? 'AdWall 등급 올리기' : '인기 미션 TOP 10 요약'}
+              </h2>
+              <p className={`mt-2 text-sm leading-6 ${isLevelModal ? 'text-blue-100' : 'text-slate-300'}`}>
+                {isLevelModal
+                  ? '현재 등급과 다음 단계까지 남은 조건만 간단하게 확인할 수 있게 압축했습니다.'
+                  : '상위 오퍼 흐름과 핵심 랭킹만 빠르게 볼 수 있게 정리했습니다.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`rounded-xl p-2 transition ${isLevelModal ? 'text-blue-100 hover:bg-white/10 hover:text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+              aria-label="모달 닫기"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto">
+          {isLevelModal ? (
+            <div className="space-y-5 px-6 py-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <article className="rounded-[1.4rem] bg-blue-50 px-4 py-4">
+                  <div className="text-xs font-bold tracking-[0.16em] text-blue-600 uppercase">현재 등급</div>
+                  <div className="mt-2 text-[1.8rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+                    {levelOverview.currentLevel}
+                  </div>
+                  <div className="mt-2 text-sm text-slate-500">{levelOverview.summary}</div>
+                </article>
+                <article className="rounded-[1.4rem] bg-slate-50 px-4 py-4">
+                  <div className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">다음 등급</div>
+                  <div className="mt-2 text-[1.8rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+                    {levelOverview.nextLevel}
+                  </div>
+                  <div className="mt-2 text-sm text-slate-500">미션과 포인트 기준을 충족하면 바로 올라갑니다.</div>
+                </article>
+              </div>
+
+              <div className="rounded-[1.4rem] bg-slate-50 px-4 py-4">
+                <div className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">진행 상태</div>
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm text-slate-700">{levelOverview.missionProgressLabel}</p>
+                  <p className="text-sm text-slate-700">{levelOverview.pointsProgressLabel}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {levelBenefits.slice(0, 3).map((benefit) => (
+                  <div key={benefit.id} className="flex gap-3 rounded-[1.3rem] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
+                    <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                      <StarIcon className="size-4" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-slate-900">{benefit.title}</div>
+                      <div className="mt-1 text-sm leading-6 text-slate-500">{benefit.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5 px-6 py-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <article className="rounded-[1.4rem] bg-amber-50 px-4 py-4">
+                  <div className="text-xs font-bold tracking-[0.16em] text-amber-700 uppercase">최고 포인트</div>
+                  <div className="mt-2 text-[1.8rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+                    {numberFormatter.format(highestReward)}P
+                  </div>
+                  <div className="mt-2 text-sm text-slate-500">이번 랭킹에서 가장 높은 보상 기준</div>
+                </article>
+                <article className="rounded-[1.4rem] bg-slate-50 px-4 py-4">
+                  <div className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">총 참여자</div>
+                  <div className="mt-2 text-[1.8rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+                    {numberFormatter.format(totalParticipants)}명
+                  </div>
+                  <div className="mt-2 text-sm text-slate-500">상위 10개 오퍼 기준 누적 참여</div>
+                </article>
+              </div>
+
+              <div className="space-y-3">
+                {topEntries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-4 rounded-[1.4rem] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]"
+                  >
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white">
+                      #{entry.rank}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold tracking-[0.16em] text-slate-400 uppercase">{entry.category}</div>
+                      <div className="mt-1 truncate text-sm font-black text-slate-900">{entry.title}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        참여 {numberFormatter.format(entry.participants)}명 · {entry.deadlineLabel}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-lg font-black tracking-[-0.04em] text-amber-500">
+                        {numberFormatter.format(entry.rewardPoints)}P
+                      </div>
+                      <div className="text-xs font-medium text-slate-400">{entry.highlight}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 border-t border-slate-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            닫기
+          </button>
+          <Link
+            to="/missions"
+            onClick={onClose}
+            className="flex-[1.4] rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700"
+          >
+            {isLevelModal ? '등급 올릴 미션 보기' : '인기 미션 보러가기'}
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function Toast({ visible, message }: { visible: boolean; message: string }) {
   return (
     <div
@@ -780,7 +1317,7 @@ export function ScrollToTopButton({ visible }: { visible: boolean }) {
     <button
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className={`fixed right-4 bottom-5 z-40 flex size-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_12px_28px_rgba(15,23,42,0.12)] transition duration-200 hover:bg-slate-50 sm:right-8 sm:bottom-8 ${visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-5 opacity-0'}`}
+      className={`fixed right-4 bottom-5 z-40 flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_12px_28px_rgba(15,23,42,0.12)] transition duration-200 hover:bg-slate-50 sm:right-8 sm:bottom-8 sm:size-12 ${visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-5 opacity-0'}`}
       aria-label="맨 위로 이동"
     >
       <ChevronUpIcon className="size-5" />
@@ -797,7 +1334,7 @@ function Pill({
 }) {
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-[0.65rem] font-black tracking-wide ${inverse ? 'bg-white/18 text-white ring-1 ring-inset ring-white/12' : 'bg-slate-900 text-white'}`}
+      className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold tracking-wide ${inverse ? 'bg-white/18 text-white ring-1 ring-inset ring-white/12' : 'bg-slate-900 text-white'}`}
     >
       {children}
     </span>
@@ -812,16 +1349,83 @@ function Dot({ active = false }: { active?: boolean }) {
   )
 }
 
-function AnchorAction({ to, children }: { to: string; children: string }) {
+function CategoryShortcutButton({
+  label,
+  isActive,
+  onClick,
+  icon,
+  badge,
+  badgeClassName,
+  baseTone,
+  tone,
+  mobileSize = 'default',
+}: {
+  label: string
+  isActive: boolean
+  onClick: () => void
+  icon: ReactNode
+  badge?: string
+  badgeClassName?: string
+  baseTone: string
+  tone: CategoryButtonTone
+  mobileSize?: 'default' | 'prominent'
+}) {
   return (
-    <Link to={to} className="transition hover:text-white">
-      {children}
-    </Link>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={isActive}
+      className={`group flex h-full w-full flex-col items-center rounded-2xl text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40 sm:gap-2.5 ${mobileSize === 'prominent' ? 'gap-3 px-1 py-3 sm:px-1 sm:py-2' : 'gap-2 px-1 py-2'}`}
+    >
+      <span
+        className={`relative flex items-center justify-center sm:size-16 ${mobileSize === 'prominent' ? 'size-[4.5rem]' : 'size-14'}`}
+      >
+        <span
+          className={`absolute inset-[-0.35rem] rounded-full blur-md transition duration-300 ${categoryActiveGlowClasses[tone]} ${isActive ? 'scale-100 opacity-100' : 'scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-55'}`}
+        />
+        <span
+          className={`relative z-10 flex size-full items-center justify-center rounded-full shadow-[0_8px_16px_rgba(15,23,42,0.04)] transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_14px_24px_rgba(15,23,42,0.1)] ${isActive ? categoryActiveIconClasses[tone] : baseTone}`}
+        >
+          {icon}
+        </span>
+        {badge && badgeClassName ? (
+          <span className={`absolute -top-1.5 right-0 z-20 rounded-full px-1.5 py-0.5 text-[0.5rem] font-black tracking-wide shadow-[0_6px_12px_rgba(15,23,42,0.08)] ${badgeClassName}`}>
+            {badge}
+          </span>
+        ) : null}
+      </span>
+      <span
+        className={`inline-flex min-h-7 items-center justify-center leading-none transition sm:text-xs ${mobileSize === 'prominent' ? 'text-[13px]' : 'text-[0.7rem]'} ${isActive ? `font-bold ${categoryLabelCapsuleClasses[tone]}` : 'font-semibold text-slate-700 group-hover:text-slate-900'}`}
+      >
+        {label}
+      </span>
+    </button>
   )
 }
 
-function Divider() {
-  return <span className="hidden h-5 w-px bg-white/20 sm:block" />
+function EmptyOfferState({ categoryLabel }: { categoryLabel: string }) {
+  return (
+    <section className={`${sectionClass} py-8 sm:py-10`}>
+      <div className="rounded-[1.8rem] border border-dashed border-slate-200 bg-white/80 px-6 py-10 text-center shadow-[0_12px_32px_rgba(15,23,42,0.04)]">
+        <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[0.65rem] font-black tracking-wide text-slate-700">
+          {categoryLabel}
+        </div>
+        <h3 className="mt-4 text-[1.6rem] leading-tight font-black tracking-[-0.05em] text-slate-900">
+          해당 카테고리의 홈 추천 미션이 아직 없어요
+        </h3>
+        <p className="mt-3 text-sm text-slate-500">
+          전체 미션 보기에서 더 많은 오퍼를 확인할 수 있어요
+        </p>
+        <Link
+          to="/missions"
+          className="mt-6 inline-flex items-center gap-1 rounded-full bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+        >
+          <span>전체 미션 보기</span>
+          <ChevronRightIcon className="size-4" />
+        </Link>
+      </div>
+    </section>
+  )
 }
 
 function OfferThumbnail({
@@ -879,6 +1483,17 @@ function OfferThumbnail({
       </div>
     </div>
   )
+}
+
+function renderPromoVisual(visual: PromoSlide['visual']) {
+  switch (visual) {
+    case 'shield':
+      return <ShieldCheckIcon className="size-11" />
+    case 'target':
+      return <TargetIcon className="size-11" />
+    case 'bell':
+      return <BellIcon className="size-11" />
+  }
 }
 
 function renderCategoryIcon(iconKey: Category['iconKey'], className: string) {
@@ -974,6 +1589,25 @@ function ChevronUpIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="m18 15-6-6-6 6" />
+    </svg>
+  )
+}
+
+function MenuIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  )
+}
+
+function CloseIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m18 6-12 12" />
+      <path d="m6 6 12 12" />
     </svg>
   )
 }

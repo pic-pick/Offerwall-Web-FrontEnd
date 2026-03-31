@@ -34,16 +34,27 @@ export type StatCard = {
   helperTone: 'up' | 'muted'
   icon: 'grid' | 'wallet'
   iconTone: 'purple' | 'blue'
+  to: string
 }
 
 export type BentoCard = {
   id: string
   subtitle: string
   title: string
+  summaryLine?: string
   cta?: string
   variant: 'light' | 'slate'
   visual: 'bell' | 'cards'
   badge?: string
+  progressPercent?: number
+}
+
+export type PromoSlide = {
+  id: string
+  titleLines: [string, string]
+  meta: string
+  visual: 'shield' | 'target' | 'bell'
+  accent: 'blue' | 'violet' | 'emerald'
 }
 
 export type Category = {
@@ -57,6 +68,7 @@ export type Category = {
 
 export type Offer = {
   id: string
+  categoryId: Category['id']
   thumbnailKey: 'shopping' | 'bank' | 'survey' | 'review' | 'delivery' | 'walking'
   imageSrc: string
   logoSrc: string
@@ -124,6 +136,49 @@ export type RewardItem = {
   logoSrc: string
 }
 
+export type NoticeData = {
+  title: string
+  description: string
+  date: string
+  body: string[]
+}
+
+export type LevelOverview = {
+  currentLevel: string
+  nextLevel: string
+  missionProgressLabel: string
+  pointsProgressLabel: string
+  summary: string
+}
+
+export type LevelTier = {
+  id: string
+  name: string
+  missionRequirement: string
+  pointRequirement: string
+  benefit: string
+  tone: 'slate' | 'blue' | 'violet' | 'amber'
+}
+
+export type LevelBenefit = {
+  id: string
+  title: string
+  description: string
+}
+
+export type TopMissionEntry = {
+  id: string
+  rank: number
+  brand: string
+  title: string
+  category: string
+  rewardPoints: number
+  participants: number
+  deadlineLabel: string
+  highlight: string
+  logoSrc: string
+}
+
 export const navItems: NavItem[] = [
   { id: 'offerwall', label: '오퍼월', to: '/' },
   { id: 'mission', label: '미션', to: '/missions' },
@@ -142,23 +197,25 @@ export const userSummary: UserSummary = {
 export const statCards: StatCard[] = [
   {
     id: 'available',
-    pill: '데이터를 확인하세요!',
+    pill: '지금 바로 참여 가능',
     label: '참여 가능 미션',
     value: '48',
-    helper: '▲ 신규 9개',
+    helper: '미션 탐색으로 이동',
     helperTone: 'up',
     icon: 'grid',
     iconTone: 'purple',
+    to: '/missions',
   },
   {
     id: 'points',
-    pill: '비용을 최적화하세요!',
+    pill: '지금 교환 가능한 포인트',
     label: '보유 포인트',
     value: '4,850',
-    helper: '현금 교환 가능',
+    helper: '리워드샵에서 확인',
     helperTone: 'muted',
     icon: 'wallet',
     iconTone: 'blue',
+    to: '/reward-shop',
   },
 ]
 
@@ -166,18 +223,45 @@ export const bentoCards: BentoCard[] = [
   {
     id: 'level-up',
     subtitle: '더 많이 참여할수록',
-    title: 'AdWall 등급 올리기',
-    cta: '1분만에 확인하기',
+    title: 'Gold 등급에서 다음 단계로',
+    summaryLine: 'Platinum까지 13개 남음',
+    cta: 'Platinum까지 13개 남음',
     variant: 'light',
     visual: 'bell',
-    badge: '1',
+    badge: 'G',
+    progressPercent: 13,
   },
   {
     id: 'top10',
     subtitle: '이번 달 가장 핫한',
     title: '인기 미션 TOP 10은?',
+    summaryLine: '캐시워크 앱 설치 후 첫 걷기 완료 · 450명 참여',
     variant: 'slate',
     visual: 'cards',
+  },
+]
+
+export const promoSlides: PromoSlide[] = [
+  {
+    id: 'review-hot',
+    titleLines: ['네이버 맛집 리뷰 3개 작성', '지금 바로 참여하기'],
+    meta: '참여 201명 · D-1',
+    visual: 'shield',
+    accent: 'blue',
+  },
+  {
+    id: 'bank-signup',
+    titleLines: ['토스뱅크 가입 완료하고', '즉시 적립 시작하기'],
+    meta: '참여 128명 · D-7',
+    visual: 'target',
+    accent: 'violet',
+  },
+  {
+    id: 'walk-mission',
+    titleLines: ['캐시워크 첫 걷기 미션', '오늘 안에 달성하기'],
+    meta: '참여 450명 · D-5',
+    visual: 'bell',
+    accent: 'emerald',
   },
 ]
 
@@ -195,6 +279,7 @@ export const categories: Category[] = [
 export const offers: Offer[] = [
   {
     id: 'shop1',
+    categoryId: 'shopping',
     thumbnailKey: 'shopping',
     imageSrc: musinsaImage,
     logoSrc: musinsaLogo,
@@ -222,6 +307,7 @@ export const offers: Offer[] = [
   },
   {
     id: 'app1',
+    categoryId: 'finance',
     thumbnailKey: 'bank',
     imageSrc: tossImage,
     logoSrc: tossLogo,
@@ -249,6 +335,7 @@ export const offers: Offer[] = [
   },
   {
     id: 'survey1',
+    categoryId: 'survey',
     thumbnailKey: 'survey',
     imageSrc: mzImage,
     logoSrc: mzLogo,
@@ -274,6 +361,7 @@ export const offers: Offer[] = [
   },
   {
     id: 'review1',
+    categoryId: 'review',
     thumbnailKey: 'review',
     imageSrc: naverImage,
     logoSrc: naverLogo,
@@ -302,6 +390,7 @@ export const offers: Offer[] = [
   },
   {
     id: 'free1',
+    categoryId: 'trial',
     thumbnailKey: 'delivery',
     imageSrc: coupangImage,
     logoSrc: coupangLogo,
@@ -329,6 +418,7 @@ export const offers: Offer[] = [
   },
   {
     id: 'app2',
+    categoryId: 'health',
     thumbnailKey: 'walking',
     imageSrc: cashwalkImage,
     logoSrc: cashwalkLogo,
@@ -559,10 +649,199 @@ export const rewardItems: RewardItem[] = [
   },
 ]
 
-export const notice = {
+export const levelOverview: LevelOverview = {
+  currentLevel: 'Gold',
+  nextLevel: 'Platinum',
+  missionProgressLabel: '이번 달 27 / 40개 미션 완료',
+  pointsProgressLabel: '누적 36,800P / 50,000P',
+  summary: '지금 페이스를 유지하면 이번 주 안에 Platinum 등급에 도달할 수 있어요.',
+}
+
+export const levelTiers: LevelTier[] = [
+  {
+    id: 'bronze',
+    name: 'Bronze',
+    missionRequirement: '가입 후 기본 등급',
+    pointRequirement: '0P',
+    benefit: '기본 미션 참여, 신규 미션 알림',
+    tone: 'slate',
+  },
+  {
+    id: 'silver',
+    name: 'Silver',
+    missionRequirement: '월 10개 미션',
+    pointRequirement: '10,000P',
+    benefit: '검수 우선 처리, 추천 미션 노출 강화',
+    tone: 'blue',
+  },
+  {
+    id: 'gold',
+    name: 'Gold',
+    missionRequirement: '월 25개 미션',
+    pointRequirement: '30,000P',
+    benefit: '고단가 미션 우선 제공, 특별 배지 지급',
+    tone: 'violet',
+  },
+  {
+    id: 'platinum',
+    name: 'Platinum',
+    missionRequirement: '월 40개 미션',
+    pointRequirement: '50,000P',
+    benefit: '파트너 한정 미션, 리워드 교환 우선권',
+    tone: 'amber',
+  },
+]
+
+export const levelBenefits: LevelBenefit[] = [
+  {
+    id: 'priority-review',
+    title: '검수 우선 처리',
+    description: '등급이 높아질수록 인증 검수와 적립 반영 속도가 빨라집니다.',
+  },
+  {
+    id: 'exclusive-offers',
+    title: '고단가 미션 우선 노출',
+    description: '전환율이 좋은 쇼핑/금융 계열 미션을 먼저 추천받을 수 있습니다.',
+  },
+  {
+    id: 'reward-perks',
+    title: '리워드 교환 혜택',
+    description: '상위 등급은 교환 가능 리워드 범위와 우선권이 더 넓어집니다.',
+  },
+]
+
+export const topMissionEntries: TopMissionEntry[] = [
+  {
+    id: 'top-musinsa',
+    rank: 1,
+    brand: 'MUSINSA',
+    title: '무신사 첫 구매 5만원 이상',
+    category: '쇼핑 / 구매',
+    rewardPoints: 3500,
+    participants: 342,
+    deadlineLabel: '마감 D-2',
+    highlight: '전환율 1위',
+    logoSrc: musinsaLogo,
+  },
+  {
+    id: 'top-toss',
+    rank: 2,
+    brand: 'Toss Bank',
+    title: '토스뱅크 앱 설치 후 회원가입',
+    category: '금융 / 카드',
+    rewardPoints: 2000,
+    participants: 128,
+    deadlineLabel: '마감 D-7',
+    highlight: '신규 인기',
+    logoSrc: tossLogo,
+  },
+  {
+    id: 'top-naver',
+    rank: 3,
+    brand: 'NAVER',
+    title: '네이버 맛집 리뷰 3개 작성',
+    category: '리뷰 작성',
+    rewardPoints: 1200,
+    participants: 201,
+    deadlineLabel: '마감 D-1',
+    highlight: '마감 임박',
+    logoSrc: naverLogo,
+  },
+  {
+    id: 'top-coupang',
+    rank: 4,
+    brand: 'Coupang Eats',
+    title: '쿠팡이츠 첫 주문 무료 체험권 수령',
+    category: '무료 체험',
+    rewardPoints: 1500,
+    participants: 55,
+    deadlineLabel: '마감 D-10',
+    highlight: '재참여율 상승',
+    logoSrc: coupangLogo,
+  },
+  {
+    id: 'top-mz',
+    rank: 5,
+    brand: 'MZ Panel',
+    title: 'MZ세대 소비 트렌드 설문 참여',
+    category: '설문조사',
+    rewardPoints: 800,
+    participants: 89,
+    deadlineLabel: '마감 D-14',
+    highlight: '완료율 우수',
+    logoSrc: mzLogo,
+  },
+  {
+    id: 'top-cashwalk',
+    rank: 6,
+    brand: 'Cashwalk',
+    title: '캐시워크 첫 걷기 미션 완료',
+    category: '운동 / 건강',
+    rewardPoints: 500,
+    participants: 450,
+    deadlineLabel: '마감 D-5',
+    highlight: '참여자 최다',
+    logoSrc: cashwalkLogo,
+  },
+  {
+    id: 'top-musinsa-style',
+    rank: 7,
+    brand: 'MUSINSA',
+    title: '스타일 추천 상품 찜하기',
+    category: '쇼핑 / 구매',
+    rewardPoints: 700,
+    participants: 174,
+    deadlineLabel: '마감 D-6',
+    highlight: '가벼운 참여형',
+    logoSrc: musinsaLogo,
+  },
+  {
+    id: 'top-toss-check',
+    rank: 8,
+    brand: 'Toss',
+    title: '계좌 연결 후 혜택 확인하기',
+    category: '금융 / 카드',
+    rewardPoints: 900,
+    participants: 142,
+    deadlineLabel: '마감 D-9',
+    highlight: '초보자 추천',
+    logoSrc: tossLogo,
+  },
+  {
+    id: 'top-naver-place',
+    rank: 9,
+    brand: 'NAVER',
+    title: '장소 저장 후 리뷰 예정 등록',
+    category: '리뷰 작성',
+    rewardPoints: 600,
+    participants: 97,
+    deadlineLabel: '마감 D-4',
+    highlight: '진입 난이도 낮음',
+    logoSrc: naverLogo,
+  },
+  {
+    id: 'top-coupang-coupon',
+    rank: 10,
+    brand: 'Coupang',
+    title: '첫 주문 쿠폰 다운로드 인증',
+    category: '무료 체험',
+    rewardPoints: 650,
+    participants: 118,
+    deadlineLabel: '마감 D-12',
+    highlight: '체험형 인기',
+    logoSrc: coupangLogo,
+  },
+]
+
+export const notice: NoticeData = {
   title: '알려드려요',
   description: 'AdWall 개인정보처리방침 변경 예정 공지',
   date: '2026.01.30',
+  body: [
+    '2026년 4월 15일부터 AdWall 개인정보처리방침이 개정될 예정입니다. 이번 개정은 리워드 지급 검수 과정에서 수집되는 인증 자료의 보관 기간과 처리 목적을 보다 명확하게 안내하기 위한 변경입니다.',
+    '회원이 제출한 스크린샷과 영수증 이미지는 기존과 동일하게 미션 검수 및 부정 참여 방지 목적으로만 활용되며, 개정 이후에는 보관 기간과 파기 절차가 문서에 구체적으로 명시됩니다.',
+    '시행 전까지 주요 변경 사항 요약본과 전체 약관 전문을 별도 공지로 다시 안내할 예정이며, 변경 내용에 동의하지 않는 경우 시행일 전까지 고객센터를 통해 문의할 수 있습니다.',
+  ],
 }
 
 export const footerLinks = [

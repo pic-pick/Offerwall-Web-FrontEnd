@@ -28,16 +28,16 @@ export function HistoryPage() {
             <br />
             한 번에 확인해요
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
-            완료된 미션, 검수중인 인증, 추가 확인이 필요한 미션까지 포트폴리오용 흐름으로 정리한 활동 페이지입니다.
-          </p>
         </div>
       </section>
 
       <section className={`${sectionClass} py-8 sm:py-10`}>
-        <div className="grid gap-4 md:grid-cols-3">
-          {historySummary.map((item) => (
-            <article key={item.id} className="rounded-[1.5rem] bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/70">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          {historySummary.map((item, index) => (
+            <article
+              key={item.id}
+              className={`rounded-[1.5rem] bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/70 ${index === 2 ? 'col-span-2 md:col-span-1' : ''}`}
+            >
               <div className="text-sm font-medium text-slate-500">{item.label}</div>
               <div className="mt-3 text-[2rem] leading-none font-black tracking-[-0.05em] text-slate-900">
                 {item.value}

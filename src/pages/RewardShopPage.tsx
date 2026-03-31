@@ -1,4 +1,4 @@
-import { rewardHighlights, rewardItems, userSummary } from '../data/mockData'
+import { rewardHighlights, rewardItems } from '../data/mockData'
 
 const sectionClass = 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'
 const numberFormatter = new Intl.NumberFormat('ko-KR')
@@ -30,28 +30,22 @@ export function RewardShopPage() {
                 <br />
                 바로 교환 가능한 리워드
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                현재 보유 포인트와 교환 가능한 아이템을 한 화면에서 비교할 수 있는 리워드샵 페이지입니다.
-              </p>
             </div>
 
-            <div className="rounded-[1.6rem] bg-white/8 p-6 ring-1 ring-white/10">
-              <div className="text-sm font-medium text-blue-100">현재 포인트</div>
-              <div className="mt-3 text-[2.6rem] leading-none font-black tracking-[-0.08em]">
-                {numberFormatter.format(userSummary.currentPoints)}P
-              </div>
-              <div className="mt-2 text-sm text-slate-300">즉시 교환 가능한 리워드를 우선 정렬했습니다.</div>
-            </div>
+
           </div>
         </div>
       </section>
 
       <section className={`${sectionClass} py-8 sm:py-10`}>
-        <div className="grid gap-4 md:grid-cols-3">
-          {rewardHighlights.map((item) => (
-            <article key={item.id} className="rounded-[1.5rem] bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/70">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          {rewardHighlights.map((item, index) => (
+            <article
+              key={item.id}
+              className={`rounded-[1.5rem] bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/70 ${index === 2 ? 'col-span-2 md:col-span-1' : ''}`}
+            >
               <div className="text-sm font-medium text-slate-500">{item.label}</div>
-              <div className="mt-3 text-[1.9rem] leading-none font-black tracking-[-0.05em] text-slate-900">
+              <div className={`mt-3 leading-none font-black tracking-[-0.05em] text-slate-900 ${item.id === 'best' ? 'text-[1.55rem] sm:text-[1.75rem]' : 'text-[1.9rem]'}`}>
                 {item.value}
               </div>
               <div className="mt-2 text-xs font-medium text-slate-400">{item.helper}</div>
