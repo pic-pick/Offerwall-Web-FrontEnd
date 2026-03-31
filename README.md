@@ -1,3 +1,5 @@
+<img src="src/assets/adwall.png" width="100%" alt="스크린샷" />
+
 # Offerwall Web Frontend
 
 오퍼월 서비스의 메인 대시보드, 미션 탐색, 참여 내역, 리워드샵을 하나의 SPA로 구현한 포트폴리오 프로젝트입니다.  
